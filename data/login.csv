@@ -1,0 +1,5 @@
+email,password
+valid.user@example.com,CorrectPass123
+invalid.user@wrong.com,CorrectPass123
+valid.user@example.com,wrongpass
+,,empty@empty.com,EmptyPass

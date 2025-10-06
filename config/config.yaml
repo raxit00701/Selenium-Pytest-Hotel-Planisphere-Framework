@@ -1,0 +1,58 @@
+# --- Target app ---
+base_url: "https://hotel-example-site.takeyaqa.dev/en-US/"
+
+# --- Execution defaults ---
+execution:
+  # Suite/default runs use all browsers. Single-file runs default to the browser below.
+  browser: "all"                  # chrome | firefox | edge | all
+  default_single_file_browser: "chrome"
+
+  headless: false
+  maximize: true
+  incognito: true
+
+  # Keep a tiny implicit wait to smooth over micro-timing without masking real sync issues
+  implicit_wait_sec: 1
+
+  # How long our explicit waits can wait (used by WebDriverWait in fixtures/tests)
+  wait_timeout_sec: 12
+
+  # Faster navigations; page is considered loaded when DOMContentLoaded fires.
+  # Switch back to "normal" if a specific page truly needs full load.
+  page_load_strategy: "eager"
+
+# --- Parallel runs ---
+parallel:
+  enabled: true
+  # xdist workers are set in runners/suite.yaml (workers: N). Keep config here minimal.
+
+# --- Paths ---
+paths:
+  artifacts_dir: "artifacts"
+  reports_dir: "reports"
+  allure_results_dir: "reports/allure-results"
+  allure_report_dir: "reports/allure-report"
+
+# --- Allure ---
+allure:
+  enable: true
+  carry_history: true
+  write_environment: true
+  extra_env:
+    project: "Hotel Selenium Py"
+    owner: "you"
+
+# --- Logging ---
+logging:
+  level: "INFO"
+  console_color: true
+  file_pattern: "{test_slug}.log"
+
+# --- Video recording (needs ffmpeg in PATH) ---
+video:
+  enable: true
+  fps: 12
+  region: "window"
+  # If ffmpeg isn't on PATH (PyCharm sessions sometimes miss PATH),
+  # this direct path ensures encoding works.
+  ffmpeg_path: "C:\\Users\\raxit\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.0-full_build\\bin"

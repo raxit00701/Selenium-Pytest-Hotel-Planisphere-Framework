@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.log
+artifacts/
+reports/allure-results/
+reports/allure-report/
+.env
+.drivers/

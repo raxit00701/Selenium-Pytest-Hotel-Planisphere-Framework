@@ -1,0 +1,4 @@
+username,password,address,tel,gender,birthday
+testuser1,Pass1234!,123 Main St,1234567890,male,1990-01-01
+testuser2,Secure5678@,456 Oak Ave,9876543210,female,1985-06-15
+testuser3,Test9012#,789 Pine Rd,5551234567,male,1995-03-22

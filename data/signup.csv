@@ -1,0 +1,6 @@
+email,password,password_confirmation,username,address,tel,birthday
+test23@example.com,Pass12321,Pass12321,TestUser,123 Main St,01155501234,01/01/1990
+,Secure789,Secure789,NewUser1,456 Elm St,02255509876,12/05/1988
+jane.doe@example.com,StrongPass456,StrongPass456,,789 Oak Ave,,25/03/1993
+john.smith@example.com,Complex123,Complex123,JohnSmith,321 Pine Rd,0114455504,17/11/1985
+alice.wong@example.com,,,AliceW,654 Cedar Ln,0115555502,30/06/1997
