@@ -1,5 +1,5 @@
 # Selenium-Pytest-Hotel-Planisphere-Framework
-A production-grade, batteries-included Selenium + Pytest framework built to run the same test suite across Chrome, Firefox, and Edge with fast warm-ups, crisp Allure reports,Jenkins CI/CD integration, per-test artifacts (screenshots, video, logs), CSV-driven data, and a simple “single file = Chrome only, full suite = all browsers” workflow.
+A production-grade, batteries-included Selenium + Pytest framework built to run the same test suite across Chrome, Firefox, and Edge with fast warm-ups,Page Object Factory Approach, crisp Allure reports,Jenkins CI/CD integration, per-test artifacts (screenshots, video, logs), CSV-driven data, and a simple “single file = Chrome only, full suite = all browsers” workflow.
 
 Highlights
 
