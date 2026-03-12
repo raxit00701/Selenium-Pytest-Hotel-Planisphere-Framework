@@ -1,5 +1,8 @@
-browsers: [chrome, firefox, edge]  # one session each
-markers: ""                        # e.g. "smoke"
-workers: 1                         # per browser (keep 1 for cleaner session control)
-extra_pytest_args: ""              # e.g., -k "login or search"
-tests_path: "src/tests"
+browsers: [chrome, firefox, edge]
+markers: ""
+workers: 1
+extra_pytest_args: ""
+tests_path: "src/tests/test_login.py"
+headless: true          # ADD THIS
+env: "test"
+parallel:  false

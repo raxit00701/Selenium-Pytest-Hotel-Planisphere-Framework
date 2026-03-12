@@ -60,6 +60,16 @@ def run_one(browser: str, cfg: dict) -> int:
     if extra:
         cmd += shlex.split(extra)
 
+    # ---- headless (added) ----
+    if cfg.get("headless", False):
+        cmd += ["--headless"]
+    # --------------------------
+
+    # ---- env (added) ----
+    env_name = (cfg.get("env") or "test").strip().lower()
+    cmd += [f"--env={env_name}"]
+    # ----------------------
+
     print(f"\n=== Running on {browser} ===")
     print("CMD:", " ".join(shlex.quote(c) for c in cmd))
     rc = subprocess.call(cmd, env=env, cwd=ROOT)
@@ -81,9 +91,12 @@ def main() -> int:
     cfg = load_cfg()
     browsers = as_list(cfg.get("browsers", ["chrome","firefox","edge"]))
     browsers = [b.lower() for b in dict.fromkeys(browsers)]
+    # ---- parallel/serial (added) ----
+    max_workers = len(browsers) if cfg.get("parallel", True) else 1
+    # ----------------------------------
 
     worst = 0
-    with ThreadPoolExecutor(max_workers=len(browsers)) as ex:
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
         fut = {ex.submit(run_one, b, cfg): b for b in browsers}
         for f in as_completed(fut):
             rc = f.result()

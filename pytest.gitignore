@@ -1,0 +1,12 @@
+echo # Python > .gitignore
+echo .venv/ >> .gitignore
+echo __pycache__/ >> .gitignore
+echo *.pyc >> .gitignore
+echo *.pyo >> .gitignore
+echo .pytest_cache/ >> .gitignore
+echo reports/allure-results/ >> .gitignore
+echo reports/allure-report/ >> .gitignore
+echo artifacts/ >> .gitignore
+echo *.mp4 >> .gitignore
+echo .env >> .gitignore
+echo *.log >> .gitignore

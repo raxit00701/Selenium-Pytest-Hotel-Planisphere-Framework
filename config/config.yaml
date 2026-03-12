@@ -1,5 +1,14 @@
 # --- Target app ---
-base_url: "https://hotel-example-site.takeyaqa.dev/en-US/"
+
+base_url: "https://hotel-example-site.takeyaqa.dev/en-US/"  # kept as fallback
+
+# --- Environments ---
+environments:
+  test:    "https://hotel-example-site.takeyaqa.dev/en-US/"
+  preprod: "https://preprod.hotel-example-site.takeyaqa.dev/en-US/"
+  prod:    "https://hotel-example-site.takeyaqa.dev/en-US/"
+
+active_env: "test"   # test | preprod | prod
 
 # --- Execution defaults ---
 execution:

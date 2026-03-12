@@ -58,11 +58,15 @@ logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
 
 def pytest_addoption(parser: pytest.Parser):
     # keep default None so we can decide priority ourselves
-    parser.addoption("--browser",  action="store",      default=None, help="chrome|firefox|edge|all")
+    parser.addoption("--browser",  action="store",      default=None,  help="chrome|firefox|edge|all")
     parser.addoption("--headless", action="store_true", default=CFG["execution"]["headless"], help="Run headless")
-    parser.addoption("--no-video", action="store_true", default=False,                         help="Disable video recording")
+    parser.addoption("--no-video", action="store_true", default=False, help="Disable video recording")
     parser.addoption("--per-test", action="store_true", default=False,
                      help="Force a fresh browser per test/param (override single-session default)")
+    # ---- env (added) ----
+    parser.addoption("--env", action="store", default=None,
+                     help="Target environment: test | preprod | prod")
+    # ----------------------
 
 def _browsers_from_value(val: str) -> list[str]:
     b = (val or "chrome").strip().lower()
@@ -124,18 +128,54 @@ def pytest_sessionstart(session: pytest.Session):
     if CFG["allure"]["enable"] and CFG["allure"]["carry_history"]:
         copy_allure_history(ALLURE_REPORT, ALLURE_RESULTS)
 
+# ---- updated _allure_env (adds env details to dashboard) ----
 @pytest.fixture(scope="session", autouse=True)
-def _allure_env():
+def _allure_env(request):
     if not CFG["allure"]["enable"] or not CFG["allure"]["write_environment"]:
         yield
         return
-    write_allure_environment(ALLURE_RESULTS, {**CFG["allure"].get("extra_env", {})})
+
+    # Resolve env name + url (same logic as base_url fixture)
+    env_name = (
+            request.config.getoption("--env")
+            or os.environ.get("TEST_ENV")
+            or CFG.get("active_env", "test")
+    ).strip().lower()
+
+    browser  = _resolve_browser_value(request.config)
+    headless = bool(request.config.getoption("--headless"))
+    url      = CFG.get("environments", {}).get(env_name) or CFG["base_url"]
+
+    write_allure_environment(ALLURE_RESULTS, {
+        # existing
+        **CFG["allure"].get("extra_env", {}),
+        # ---- env details (added) ----
+        "Environment" : env_name.upper(),
+        "Base_URL"    : url,
+        "Browser"     : browser,
+        "Headless"    : str(headless),
+    })
     yield
+# --------------------------------------------------------------
 
 # ---------- Base URL ----------
+# ---- env (added) ----
 @pytest.fixture(scope="session")
-def base_url() -> str:
-    return CFG["base_url"]
+def base_url(request) -> str:
+    # Priority: CLI --env > ENV VAR TEST_ENV > config active_env > base_url fallback
+    env_name = (
+            request.config.getoption("--env")
+            or os.environ.get("TEST_ENV")
+            or CFG.get("active_env", "test")
+    ).strip().lower()
+
+    envs = CFG.get("environments", {})
+    url  = envs.get(env_name) or CFG["base_url"]
+
+    print(f"\n>>> Environment : {env_name.upper()}")
+    print(f">>> Base URL    : {url}\n")
+    return url
+# ----------------------
 
 # ---------- Allure metadata & grouping (browser → module → class) ----------
 @pytest.fixture(autouse=True)
@@ -228,7 +268,6 @@ def _allure_metadata(request):
             if lvl and (chosen is None or rank[lvl] > rank[chosen]):
                 chosen = lvl
         if chosen:
-            # Allure commons accepts string severity names as well
             allure.dynamic.severity(chosen)  # type: ignore
     except Exception:
         pass
@@ -417,18 +456,15 @@ def pytest_runtest_makereport(item, call):
                     status = "FAILED" if rep.failed else "SKIPPED"
                     reason = None
                     try:
-                        # longreprtext is best-effort; may be None
                         reason = getattr(rep, "longreprtext", None) or str(getattr(rep, "longrepr", "") or "")
                     except Exception:
                         reason = ""
                     logger.error("%s: %s", status, rep.nodeid)
                     if reason:
                         logger.error("Reason:\n%s", reason)
-                    # flush buffered log to disk and keep the file handler
                     materialize_log_to_file(logger, mem, tl["log_path"])
                 except Exception:
                     pass
-                # attach only if non-empty (and remove if empty)
                 _attach_log_if_nonempty(ap["log"])
 
     elif rep.when == "teardown":
