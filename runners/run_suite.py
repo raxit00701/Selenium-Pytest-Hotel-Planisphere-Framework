@@ -77,7 +77,7 @@ def run_one(browser: str, cfg: dict) -> int:
         print(f"[{browser}] pytest exit code: {rc}")
 
     # Generate per-browser Allure HTML if CLI is available
-    allure = shutil.which("allure")
+    allure = r"C:\Users\raxit\allure-2.37.0\bin\allure.bat"
     if allure:
         gen_cmd = [allure, "generate", str(res_dir), "-o", str(rep_dir), "--clean"]
         print("Allure:", " ".join(shlex.quote(c) for c in gen_cmd))
@@ -87,13 +87,13 @@ def run_one(browser: str, cfg: dict) -> int:
 
     return rc
 
+
 def main() -> int:
     cfg = load_cfg()
     browsers = as_list(cfg.get("browsers", ["chrome","firefox","edge"]))
     browsers = [b.lower() for b in dict.fromkeys(browsers)]
-    # ---- parallel/serial (added) ----
+
     max_workers = len(browsers) if cfg.get("parallel", True) else 1
-    # ----------------------------------
 
     worst = 0
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
@@ -103,7 +103,36 @@ def main() -> int:
             worst = rc if rc > worst else worst
 
     print("\nDone. Per-browser reports (if generated): reports/allure-report/<browser>/index.html")
+
+    # ---- MERGED ALLURE REPORT ----
+    merged_results = ROOT / "reports" / "allure-results"
+    merged_report = ROOT / "reports" / "allure-report" / "merged"
+
+    chrome = merged_results / "chrome"
+    firefox = merged_results / "firefox"
+    edge = merged_results / "edge"
+
+    allure = r"C:\Users\raxit\allure-2.37.0\bin\allure.bat"
+
+    if Path(allure).exists():
+        gen_cmd = [
+            allure,
+            "generate",
+            str(chrome),
+            str(firefox),
+            str(edge),
+            "-o",
+            str(merged_report),
+            "--clean",
+        ]
+
+        print("\nGenerating merged Allure report...")
+        subprocess.call(gen_cmd, cwd=ROOT)
+
+        print(f"Merged report: {merged_report / 'index.html'}")
+
     return worst
+
 
 if __name__ == "__main__":
     sys.exit(main())

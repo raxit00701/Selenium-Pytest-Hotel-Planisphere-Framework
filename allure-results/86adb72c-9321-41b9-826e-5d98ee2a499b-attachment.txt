@@ -1,0 +1,94 @@
+[31m21:24:09 | ERROR    | tests | FAILED: src/tests/test_reserve.py::test_reserve[firefox-row-2][0m
+[31m21:24:09 | ERROR    | tests | Reason:
+driver = <selenium.webdriver.firefox.webdriver.WebDriver (session="9e0a8eeb-75ba-4db1-b63e-51ca59912fa2")>, base_url = 'https://hotel-example-site.takeyaqa.dev/en-US/'
+data = {'comment': 'Empty term and head count', 'head_count': '', 'term': '', 'username': 'guest.user'}
+
+    @pytest.mark.csv(path="data/reserve.csv")
+    def test_reserve(driver, base_url, data):
+        driver.get(base_url)
+        time.sleep(1)  # Wait after navigating to base URL
+    
+        # Step 1: Click Reserve link
+        HomePage(driver).click_reserve_link()
+        time.sleep(1)
+    
+        # Step 2-3: Scroll to and click the 6th "Reserve room" button
+        reserve_buttons = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//a[@class='btn btn-primary'][normalize-space()='Reserve room']"))
+        )
+        reserve_button = reserve_buttons[5]
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", reserve_button)
+        time.sleep(1)
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable(reserve_button))
+        reserve_button.click()
+        time.sleep(1)
+    
+        # Step 4: Switch to new tab
+        window_handles = driver.window_handles
+        driver.switch_to.window(window_handles[-1])
+        print("Switched to new tab")
+        time.sleep(1)
+    
+        # Step 5-6: Select date
+>       date_field = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//input[@id='date']"))
+        )
+
+src\tests\test_reserve.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <selenium.webdriver.support.wait.WebDriverWait (session="9e0a8eeb-75ba-4db1-b63e-51ca59912fa2")>
+method = <function element_to_be_clickable.<locals>._predicate at 0x00000201E8782350>, message = ''
+
+    def until(self, method: Callable[[D], Literal[False] | T], message: str = "") -> T:
+        """Wait until the method returns a value that is not False.
+    
+        Calls the method provided with the driver as an argument until the
+        return value does not evaluate to ``False``.
+    
+        Args:
+            method: A callable object that takes a WebDriver instance as an
+                argument.
+            message: Optional message for TimeoutException.
+    
+        Returns:
+            The result of the last call to `method`.
+    
+        Raises:
+            TimeoutException: If 'method' does not return a truthy value within
+                the WebDriverWait object's timeout.
+    
+        Example:
+            >>> from selenium.webdriver.common.by import By
+            >>> from selenium.webdriver.support.ui import WebDriverWait
+            >>> from selenium.webdriver.support import expected_conditions as EC
+            >>>
+            >>> # Wait until an element is visible on the page
+            >>> wait = WebDriverWait(driver, 10)
+            >>> element = wait.until(EC.visibility_of_element_located((By.ID, "exampleId")))
+            >>> print(element.text)
+        """
+        screen = None
+        stacktrace = None
+    
+        end_time = time.monotonic() + self._timeout
+        while True:
+            try:
+                value = method(self._driver)
+                if value:
+                    return value
+            except self._ignored_exceptions as exc:
+                screen = getattr(exc, "screen", None)
+                stacktrace = getattr(exc, "stacktrace", None)
+            if time.monotonic() > end_time:
+                break
+            time.sleep(self._poll)
+>       raise TimeoutException(message, screen, stacktrace)
+E       selenium.common.exceptions.TimeoutException: Message: 
+E       Stacktrace:
+E       RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:8:8
+E       WebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:202:5
+E       NoSuchElementError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:555:5
+E       dom.find/</<@chrome://remote/content/shared/DOM.sys.mjs:136:16
+
+.venv\Lib\site-packages\selenium\webdriver\support\wait.py:121: TimeoutException[0m

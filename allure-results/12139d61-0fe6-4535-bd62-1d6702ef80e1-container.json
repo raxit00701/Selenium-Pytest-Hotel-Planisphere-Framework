@@ -1,0 +1,1 @@
+{"uuid": "7a5f0864-a96c-4a01-a018-1f931da94e21", "children": ["c10a1864-ec0b-4037-83e5-73c2d62d6882"], "befores": [{"name": "_allure_metadata", "status": "passed", "start": 1773331025603, "stop": 1773331025604}], "afters": [{"name": "_allure_metadata::0", "status": "passed", "start": 1773331043460, "stop": 1773331043460}], "start": 1773331025603, "stop": 1773331043460}

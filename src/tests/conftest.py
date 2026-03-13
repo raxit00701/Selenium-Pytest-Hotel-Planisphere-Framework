@@ -7,7 +7,6 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any
 import logging, warnings
-
 from src.core.driver_factory import build_driver
 from src.core.video_recorder import VideoRecorder
 from src.core.logger import get_buffered_logger, materialize_log_to_file, drop_memory_handler
@@ -26,6 +25,11 @@ from _pytest.reports import TestReport
 # ---------- Paths & Config ----------
 ROOT = Path(__file__).resolve().parents[2]
 CFG: Dict[str, Any] = yaml.safe_load((ROOT / "config" / "config.yaml").read_text(encoding="utf-8"))
+
+# ===== ADDED FOR ROOT ENVIRONMENT =====
+ALLURE_RESULTS_ROOT = ROOT / "reports" / "allure-results"
+ALLURE_RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
+# =====================================
 
 # Optional: make FFmpeg visible (if provided in config)
 _ffmpeg_cfg = (CFG.get("video") or {}).get("ffmpeg_path")
@@ -135,7 +139,6 @@ def _allure_env(request):
         yield
         return
 
-    # Resolve env name + url (same logic as base_url fixture)
     env_name = (
             request.config.getoption("--env")
             or os.environ.get("TEST_ENV")
@@ -146,15 +149,22 @@ def _allure_env(request):
     headless = bool(request.config.getoption("--headless"))
     url      = CFG.get("environments", {}).get(env_name) or CFG["base_url"]
 
-    write_allure_environment(ALLURE_RESULTS, {
-        # existing
+    env_data = {
         **CFG["allure"].get("extra_env", {}),
-        # ---- env details (added) ----
-        "Environment" : env_name.upper(),
-        "Base_URL"    : url,
-        "Browser"     : browser,
-        "Headless"    : str(headless),
-    })
+        "Environment": env_name.upper(),
+        "Base_URL": url,
+        "Browser": browser,
+        "Headless": str(headless),
+    }
+
+    # existing write (browser folder)
+    write_allure_environment(ALLURE_RESULTS, env_data)
+
+    # root write (needed for Allure dashboard)
+    root_results = ROOT / "reports" / "allure-results"
+    root_results.mkdir(parents=True, exist_ok=True)
+    write_allure_environment(root_results, env_data)
+
     yield
 # --------------------------------------------------------------
 
