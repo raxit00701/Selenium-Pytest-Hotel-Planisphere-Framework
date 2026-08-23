@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-
   pull_request:
     branches:
       - main
-
   workflow_dispatch:
 
 jobs:
@@ -50,7 +48,12 @@ jobs:
           python -m pip --version
 
           Write-Host "Chrome:"
-          & "C:\Program Files\Google\Chrome\Application\chrome.exe" --version
+          $chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+          if (Test-Path $chromePath) {
+            & $chromePath --version
+          } else {
+            Write-Host "Chrome not found at default path, skipping version check."
+          }
 
           Write-Host ""
           Write-Host "Working directory:"
@@ -85,6 +88,9 @@ jobs:
             exit 1
           }
 
+          Write-Host "Applying dynamic fix for certifi dependency conflict..."
+          (Get-Content requirements.txt) -replace 'certifi==2025\.8\.3', 'certifi>=2026.1.4' | Set-Content requirements.txt
+
           Write-Host "Installing requirements.txt..."
           Write-Host ""
 
@@ -113,7 +119,7 @@ jobs:
           Write-Host ""
 
           python -c "import pytest; print('pytest        :', pytest.__version__)"
-          python -c "import selenium; print('selenium     :', selenium.__version__)"
+          python -c "import selenium; print('selenium       :', selenium.__version__)"
           python -c "import allure; print('allure-pytest  : installed')"
           python -c "import yaml; print('PyYAML         :', yaml.__version__)"
 
