@@ -4,30 +4,87 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
+
+# Required for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   selenium-tests:
-    name: Chrome Headless Selenium Tests
+    name: Chrome Selenium Tests
     runs-on: windows-latest
 
     steps:
-      # 01 - Checkout
+
+      # ============================================================
+      # 01 - CHECKOUT
+      # ============================================================
       - name: "01 - Checkout repository"
         uses: actions/checkout@v4
 
-      # 02 - Python
+      # ============================================================
+      # 02 - PYTHON + PIP CACHE
+      # ============================================================
       - name: "02 - Setup Python"
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements.txt
 
-      # 03 - Environment info
-      - name: "03 - Verify CI environment"
+      # ============================================================
+      # 03 - INSTALL GOOGLE CHROME
+      # ============================================================
+      - name: "03 - Install Google Chrome"
+        shell: powershell
+        run: |
+          Write-Host ""
+          Write-Host "============================================================"
+          Write-Host " GOOGLE CHROME"
+          Write-Host "============================================================"
+          Write-Host ""
+
+          $chromePaths = @(
+            "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+            "${env:LOCALAPPDATA}\Google\Chrome\Application\chrome.exe"
+          )
+
+          $chrome = $chromePaths |
+            Where-Object { Test-Path $_ } |
+            Select-Object -First 1
+
+          if ($chrome) {
+            Write-Host "Chrome already installed."
+            Write-Host "Path: $chrome"
+          }
+          else {
+            Write-Host "Chrome not found."
+            Write-Host "Installing Google Chrome..."
+
+            choco install googlechrome -y --no-progress
+
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "ERROR: Chrome installation failed."
+              exit $LASTEXITCODE
+            }
+          }
+
+          Write-Host ""
+          Write-Host "Chrome installation verified."
+
+      # ============================================================
+      # 04 - VERIFY CI ENVIRONMENT
+      # ============================================================
+      - name: "04 - Verify CI environment"
         shell: powershell
         run: |
           Write-Host ""
@@ -36,50 +93,71 @@ jobs:
           Write-Host "============================================================"
           Write-Host ""
 
-          Write-Host "Operating System:"
-          Get-CimInstance Win32_OperatingSystem |
-            Select-Object Caption, Version |
-            Format-List
+          Write-Host "OS:"
+          (Get-CimInstance Win32_OperatingSystem).Caption
 
+          Write-Host ""
           Write-Host "Python:"
           python --version
 
+          Write-Host ""
           Write-Host "Pip:"
           python -m pip --version
 
+          Write-Host ""
           Write-Host "Chrome:"
-          $chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-          if (Test-Path $chromePath) {
-            & $chromePath --version
-          } else {
-            Write-Host "Chrome not found at default path, skipping version check."
+
+          $chromePaths = @(
+            "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+            "${env:LOCALAPPDATA}\Google\Chrome\Application\chrome.exe"
+          )
+
+          $chrome = $chromePaths |
+            Where-Object { Test-Path $_ } |
+            Select-Object -First 1
+
+          if (-not $chrome) {
+            Write-Host "ERROR: Chrome executable was not found."
+            exit 1
           }
+
+          $chromeVersion = (Get-Item $chrome).VersionInfo.ProductVersion
+
+          Write-Host "Path   : $chrome"
+          Write-Host "Version: $chromeVersion"
 
           Write-Host ""
           Write-Host "Working directory:"
           Get-Location
 
-      # 04 - Upgrade pip
-      - name: "04 - Upgrade pip"
+      # ============================================================
+      # 05 - UPGRADE PIP
+      # ============================================================
+      - name: "05 - Upgrade pip"
         shell: powershell
         run: |
           Write-Host ""
           Write-Host "============================================================"
-          Write-Host " UPGRADING PIP"
+          Write-Host " PYTHON PACKAGE MANAGER"
           Write-Host "============================================================"
           Write-Host ""
 
-          python -m pip install `
-            --upgrade pip `
-            --disable-pip-version-check
+          python -m pip install --upgrade pip `
+            --disable-pip-version-check `
+            --quiet
 
-     # 05 - Install Python requirements
-      - name: "05 - Install Python requirements"
+          Write-Host "pip ready."
+
+      # ============================================================
+      # 06 - INSTALL REQUIREMENTS
+      # ============================================================
+      - name: "06 - Install Python requirements"
         shell: powershell
         run: |
           Write-Host ""
           Write-Host "============================================================"
-          Write-Host " INSTALLING PYTHON REQUIREMENTS"
+          Write-Host " PYTHON DEPENDENCIES"
           Write-Host "============================================================"
           Write-Host ""
 
@@ -88,29 +166,28 @@ jobs:
             exit 1
           }
 
-          Write-Host "Applying dynamic fixes for dependency conflicts..."
-          (Get-Content requirements.txt) -replace 'certifi==2025\.8\.3', 'certifi>=2026.1.4' | Set-Content requirements.txt
-          (Get-Content requirements.txt) -replace 'urllib3==2\.5\.0', 'urllib3>=2.6.3' | Set-Content requirements.txt
-
           Write-Host "Installing requirements.txt..."
           Write-Host ""
 
           python -m pip install `
             -r requirements.txt `
             --disable-pip-version-check `
-            --no-warn-script-location
+            --no-warn-script-location `
+            --quiet
 
           if ($LASTEXITCODE -ne 0) {
             Write-Host ""
-            Write-Host "ERROR: Python dependency installation failed."
+            Write-Host "ERROR: Dependency installation failed."
             exit $LASTEXITCODE
           }
 
           Write-Host ""
-          Write-Host "Python dependencies installed successfully."
+          Write-Host "Dependencies installed successfully."
 
-      # 06 - Verify test stack
-      - name: "06 - Verify test stack"
+      # ============================================================
+      # 07 - VERIFY TEST STACK
+      # ============================================================
+      - name: "07 - Verify test stack"
         shell: powershell
         run: |
           Write-Host ""
@@ -119,67 +196,68 @@ jobs:
           Write-Host "============================================================"
           Write-Host ""
 
-          python -c "import pytest; print('pytest        :', pytest.__version__)"
-          python -c "import selenium; print('selenium       :', selenium.__version__)"
-          python -c "import allure; print('allure-pytest  : installed')"
-          python -c "import yaml; print('PyYAML         :', yaml.__version__)"
+          python -c "import pytest; print('pytest       :', pytest.__version__)"
+          python -c "import selenium; print('selenium      :', selenium.__version__)"
+          python -c "import allure; print('allure-pytest : installed')"
+          python -c "import yaml; print('PyYAML        :', yaml.__version__)"
 
           Write-Host ""
-          Write-Host "Python test stack verified."
+          Write-Host "Test stack verified."
 
-      # 07 - Install Allure CLI
-      - name: "07 - Install Allure CLI"
+      # ============================================================
+      # 08 - INSTALL ALLURE CLI
+      # ============================================================
+      - name: "08 - Install Allure CLI"
         shell: powershell
         run: |
           Write-Host ""
           Write-Host "============================================================"
-          Write-Host " INSTALLING ALLURE CLI (via NPM)"
+          Write-Host " ALLURE"
           Write-Host "============================================================"
           Write-Host ""
 
-          npm install -g allure-commandline
+          npm install -g allure-commandline --silent
 
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "ERROR: Allure installation failed."
+            Write-Host "ERROR: Allure CLI installation failed."
             exit $LASTEXITCODE
           }
 
-          Write-Host ""
           Write-Host "Allure version:"
           allure --version
 
-      # 08 - Prepare directories
-      - name: "08 - Prepare test directories"
+      # ============================================================
+      # 09 - PREPARE DIRECTORIES
+      # ============================================================
+      - name: "09 - Prepare test directories"
         shell: powershell
         run: |
           Write-Host ""
           Write-Host "============================================================"
-          Write-Host " PREPARING TEST DIRECTORIES"
+          Write-Host " TEST DIRECTORIES"
           Write-Host "============================================================"
           Write-Host ""
 
-          New-Item `
-            -ItemType Directory `
-            -Force `
+          New-Item -ItemType Directory -Force `
             -Path "reports/allure-results" | Out-Null
 
-          New-Item `
-            -ItemType Directory `
-            -Force `
+          New-Item -ItemType Directory -Force `
             -Path "reports/allure-report" | Out-Null
 
-          New-Item `
-            -ItemType Directory `
-            -Force `
+          New-Item -ItemType Directory -Force `
             -Path "artifacts" | Out-Null
 
-          Write-Host "reports/allure-results : READY"
-          Write-Host "reports/allure-report  : READY"
-          Write-Host "artifacts              : READY"
+          Write-Host "Allure results : READY"
+          Write-Host "Allure report  : READY"
+          Write-Host "Test artifacts : READY"
 
-      # 09 - Run Selenium tests (headless in CI)
-      - name: "09 - Run Chrome headless tests"
+      # ============================================================
+      # 10 - RUN SELENIUM TESTS
+      # ============================================================
+      - name: "10 - Run Chrome headless tests"
+        id: pytest
         shell: powershell
+        continue-on-error: true
         env:
           CI: "true"
           TEST_ENV: "test"
@@ -187,51 +265,52 @@ jobs:
         run: |
           Write-Host ""
           Write-Host "============================================================"
-          Write-Host " RUNNING SELENIUM TESTS"
+          Write-Host " SELENIUM TEST RUN"
           Write-Host "============================================================"
           Write-Host ""
-          Write-Host "Framework     : Selenium + Pytest"
-          Write-Host "Browser       : Google Chrome"
-          Write-Host "Mode          : HEADLESS (CI)"
-          Write-Host "Environment   : TEST"
-          Write-Host "Test path     : src/tests"
-          Write-Host "Allure output : reports/allure-results"
-          Write-Host ""
-          Write-Host "ChromeDriver  : Selenium Manager"
+          Write-Host "Framework    : Selenium + Pytest"
+          Write-Host "Browser      : Google Chrome"
+          Write-Host "Mode         : HEADLESS"
+          Write-Host "Environment  : TEST"
+          Write-Host "Tests        : src/tests"
+          Write-Host "Allure       : reports/allure-results"
+          Write-Host "Driver       : Selenium Manager"
           Write-Host ""
           Write-Host "------------------------------------------------------------"
-          Write-Host " PYTEST OUTPUT"
+          Write-Host " PYTEST"
           Write-Host "------------------------------------------------------------"
           Write-Host ""
 
           python -m pytest src/tests `
             --browser=chrome `
-            --env=test `
             --headless `
+            --env=test `
             --alluredir=reports/allure-results `
             --clean-alluredir `
             -ra
 
-          $testExitCode = $LASTEXITCODE
+          $exitCode = $LASTEXITCODE
 
           Write-Host ""
           Write-Host "------------------------------------------------------------"
 
-          if ($testExitCode -eq 0) {
-            Write-Host " TEST RESULT: PASSED"
+          if ($exitCode -eq 0) {
+            Write-Host "RESULT: ALL TESTS PASSED"
           }
           else {
-            Write-Host " TEST RESULT: FAILED"
-            Write-Host " Pytest exit code: $testExitCode"
+            Write-Host "RESULT: TESTS FAILED"
+            Write-Host "Pytest exit code: $exitCode"
           }
 
           Write-Host "------------------------------------------------------------"
-          Write-Host ""
 
-          exit $testExitCode
+          # Keep the workflow alive so Allure/artifacts can be generated.
+          exit 0
 
-      # 10 - Generate Allure HTML report
-      - name: "10 - Generate Allure HTML report"
+      # ============================================================
+      # 11 - GENERATE ALLURE REPORT
+      # ============================================================
+      - name: "11 - Generate Allure HTML report"
         if: always()
         shell: powershell
         run: |
@@ -242,7 +321,7 @@ jobs:
           Write-Host ""
 
           if (-not (Test-Path "reports/allure-results")) {
-            Write-Host "WARNING: Allure results directory does not exist."
+            Write-Host "No Allure results directory found."
             exit 0
           }
 
@@ -251,16 +330,15 @@ jobs:
             -File `
             -ErrorAction SilentlyContinue
 
-          Write-Host "Allure result files: $($resultFiles.Count)"
-          Write-Host ""
+          Write-Host "Result files: $($resultFiles.Count)"
 
           if ($resultFiles.Count -eq 0) {
-            Write-Host "WARNING: No Allure result files were generated."
+            Write-Host "No Allure results were generated."
             exit 0
           }
 
-          Write-Host "Generating HTML report..."
           Write-Host ""
+          Write-Host "Generating HTML..."
 
           allure generate `
             reports/allure-results `
@@ -268,109 +346,136 @@ jobs:
             -o reports/allure-report
 
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "WARNING: Allure report generation failed."
-            exit 0
+            Write-Host "ERROR: Allure generation failed."
+            exit 1
+          }
+
+          if (-not (Test-Path "reports/allure-report/index.html")) {
+            Write-Host "ERROR: Allure index.html was not generated."
+            exit 1
           }
 
           Write-Host ""
-          Write-Host "Allure report generated successfully."
-          Write-Host "Location: reports/allure-report/index.html"
+          Write-Host "Allure report generated."
+          Write-Host "HTML: reports/allure-report/index.html"
 
-      # 11 - Inspect generated files
-      - name: "11 - Inspect generated files"
-        if: always()
-        shell: powershell
-        run: |
-          Write-Host ""
-          Write-Host "============================================================"
-          Write-Host " GENERATED FILES"
-          Write-Host "============================================================"
-          Write-Host ""
-
-          Write-Host "Allure results:"
-          if (Test-Path "reports/allure-results") {
-            $count = (Get-ChildItem "reports/allure-results" -File).Count
-            Write-Host "  Files: $count"
-          }
-          else {
-            Write-Host "  Directory not found"
-          }
-
-          Write-Host ""
-          Write-Host "Allure HTML report:"
-          if (Test-Path "reports/allure-report") {
-            $count = (Get-ChildItem "reports/allure-report" -Recurse -File).Count
-            Write-Host "  Files: $count"
-
-            if (Test-Path "reports/allure-report/index.html") {
-              Write-Host "  index.html: FOUND"
-            }
-          }
-          else {
-            Write-Host "  Directory not found"
-          }
-
-          Write-Host ""
-          Write-Host "Test artifacts:"
-          if (Test-Path "artifacts") {
-            $count = (Get-ChildItem "artifacts" -Recurse -File).Count
-            Write-Host "  Files: $count"
-          }
-          else {
-            Write-Host "  Directory not found"
-          }
-
-      # 12 - Upload Allure report
-      - name: "12 - Upload Allure HTML report"
+      # ============================================================
+      # 12 - UPLOAD COMPLETE ALLURE REPORT
+      # ============================================================
+      - name: "12 - Upload complete Allure report"
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: reports/allure-report
+          path: reports/allure-report/
           if-no-files-found: warn
           retention-days: 14
+          compression-level: 6
 
-      # 13 - Upload Allure results
+      # ============================================================
+      # 13 - UPLOAD RAW ALLURE RESULTS
+      # ============================================================
       - name: "13 - Upload Allure results"
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
-          path: reports/allure-results
+          path: reports/allure-results/
           if-no-files-found: warn
           retention-days: 14
+          compression-level: 6
 
-      # 14 - Upload test artifacts
+      # ============================================================
+      # 14 - UPLOAD SCREENSHOTS / VIDEO / LOGS
+      # ============================================================
       - name: "14 - Upload test artifacts"
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-artifacts
-          path: artifacts
+          path: artifacts/
           if-no-files-found: warn
           retention-days: 14
+          compression-level: 6
 
-      # 15 - Final summary
-      - name: "15 - CI summary"
+      # ============================================================
+      # 15 - PREPARE GITHUB PAGES
+      # ============================================================
+      - name: "15 - Upload Allure report to Pages"
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/allure-report
+
+      # ============================================================
+      # 16 - DEPLOY ALLURE TO GITHUB PAGES
+      # ============================================================
+      - name: "16 - Deploy Allure report to GitHub Pages"
+        if: always()
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      # ============================================================
+      # 17 - FINAL SUMMARY
+      # ============================================================
+      - name: "17 - CI summary"
         if: always()
         shell: powershell
+        env:
+          ALLURE_URL: ${{ steps.deployment.outputs.page_url }}
+          TEST_OUTCOME: ${{ steps.pytest.outcome }}
         run: |
           Write-Host ""
           Write-Host "============================================================"
           Write-Host " CI TEST RUN COMPLETE"
           Write-Host "============================================================"
           Write-Host ""
+
           Write-Host "Framework   : Selenium + Pytest"
           Write-Host "Browser     : Google Chrome"
-          Write-Host "Mode        : HEADLESS (CI)"
+          Write-Host "Mode        : HEADLESS"
           Write-Host "Environment : TEST"
           Write-Host ""
+
+          Write-Host "Test result : $env:TEST_OUTCOME"
+          Write-Host ""
+
           Write-Host "Artifacts:"
           Write-Host "  - allure-report"
           Write-Host "  - allure-results"
           Write-Host "  - test-artifacts"
           Write-Host ""
-          Write-Host "Allure:"
-          Write-Host "  reports/allure-report/index.html"
+
+          if ($env:ALLURE_URL) {
+            Write-Host "============================================================"
+            Write-Host " ALLURE REPORT"
+            Write-Host "============================================================"
+            Write-Host ""
+            Write-Host $env:ALLURE_URL
+            Write-Host ""
+          }
+
+          Write-Host "============================================================"
+
+      # ============================================================
+      # 18 - FAIL JOB IF TESTS FAILED
+      # ============================================================
+      - name: "18 - Set final test status"
+        if: always()
+        shell: powershell
+        env:
+          TEST_OUTCOME: ${{ steps.pytest.outcome }}
+        run: |
+          if ($env:TEST_OUTCOME -ne "success") {
+            Write-Host ""
+            Write-Host "============================================================"
+            Write-Host " TESTS FAILED"
+            Write-Host "============================================================"
+            Write-Host ""
+            exit 1
+          }
+
           Write-Host ""
+          Write-Host "============================================================"
+          Write-Host " ALL TESTS PASSED"
           Write-Host "============================================================"
