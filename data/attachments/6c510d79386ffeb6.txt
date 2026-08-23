@@ -1,0 +1,2 @@
+📝 Clicked 'Sign up'
+signup successful

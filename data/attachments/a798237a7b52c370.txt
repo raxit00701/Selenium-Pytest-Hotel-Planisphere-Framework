@@ -1,0 +1,116 @@
+18:57:04 | ERROR    | tests | FAILED: src/tests/test_reserve.py::test_reserve[chrome-row-1]
+18:57:04 | ERROR    | tests | Reason:
+driver = <selenium.webdriver.chrome.webdriver.WebDriver (session="555354af3c0d0b6a7fa1b3fd4e6b9283")>
+base_url = 'https://hotel-example-site.takeyaqa.dev/en-US/'
+data = {'comment': 'Standard reservation', 'head_count': '', 'term': '', 'username': 'john.doe'}
+
+    @pytest.mark.csv(path="data/reserve.csv")
+    def test_reserve(driver, base_url, data):
+        driver.get(base_url)
+        time.sleep(1)  # Wait after navigating to base URL
+    
+        # Step 1: Click Reserve link
+        HomePage(driver).click_reserve_link()
+        time.sleep(1)
+    
+        # Step 2-3: Scroll to and click the 6th "Reserve room" button
+        reserve_buttons = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//a[@class='btn btn-primary'][normalize-space()='Reserve room']"))
+        )
+        reserve_button = reserve_buttons[5]
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", reserve_button)
+        time.sleep(1)
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable(reserve_button))
+        reserve_button.click()
+        time.sleep(1)
+    
+        # Step 4: Switch to new tab
+        window_handles = driver.window_handles
+        driver.switch_to.window(window_handles[-1])
+        print("Switched to new tab")
+        time.sleep(1)
+    
+        # Step 5-6: Select date
+        date_field = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//input[@id='date']"))
+        )
+        date_field.click()
+        time.sleep(1)
+>       date_16 = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='16']"))
+        )
+
+src\tests\test_reserve.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <selenium.webdriver.support.wait.WebDriverWait (session="555354af3c0d0b6a7fa1b3fd4e6b9283")>
+method = <function element_to_be_clickable.<locals>._predicate at 0x00000207410119E0>
+message = ''
+
+    def until(self, method: Callable[[D], Literal[False] | T], message: str = "") -> T:
+        """Wait until the method returns a value that is not False.
+    
+        Calls the method provided with the driver as an argument until the
+        return value does not evaluate to ``False``.
+    
+        Args:
+            method: A callable object that takes a WebDriver instance as an
+                argument.
+            message: Optional message for TimeoutException.
+    
+        Returns:
+            The result of the last call to `method`.
+    
+        Raises:
+            TimeoutException: If 'method' does not return a truthy value within
+                the WebDriverWait object's timeout.
+    
+        Example:
+            >>> from selenium.webdriver.common.by import By
+            >>> from selenium.webdriver.support.ui import WebDriverWait
+            >>> from selenium.webdriver.support import expected_conditions as EC
+            >>>
+            >>> # Wait until an element is visible on the page
+            >>> wait = WebDriverWait(driver, 10)
+            >>> element = wait.until(EC.visibility_of_element_located((By.ID, "exampleId")))
+            >>> print(element.text)
+        """
+        screen = None
+        stacktrace = None
+    
+        end_time = time.monotonic() + self._timeout
+        while True:
+            try:
+                value = method(self._driver)
+                if value:
+                    return value
+            except self._ignored_exceptions as exc:
+                screen = getattr(exc, "screen", None)
+                stacktrace = getattr(exc, "stacktrace", None)
+            if time.monotonic() > end_time:
+                break
+            time.sleep(self._poll)
+>       raise TimeoutException(message, screen, stacktrace)
+E       selenium.common.exceptions.TimeoutException: Message: 
+E       Stacktrace:
+E       	chromedriver!GetHandleVerifier [0x7ff74eceabb5+151b5]
+E       	chromedriver!GetHandleVerifier [0x7ff74eceac10+15210]
+E       	chromedriver!(No symbol) [0x7ff74e815d6d]
+E       	chromedriver!(No symbol) [0x7ff74e871289]
+E       	chromedriver!(No symbol) [0x7ff74e87158c]
+E       	chromedriver!(No symbol) [0x7ff74e8c2027]
+E       	chromedriver!(No symbol) [0x7ff74e8bec0b]
+E       	chromedriver!(No symbol) [0x7ff74e8637cc]
+E       	chromedriver!(No symbol) [0x7ff74e8646f3]
+E       	chromedriver!GetHandleVerifier [0x7ff74f30b79b+635d9b]
+E       	chromedriver!GetHandleVerifier [0x7ff74f305ac6+6300c6]
+E       	chromedriver!GetHandleVerifier [0x7ff74f32bcee+6562ee]
+E       	chromedriver!GetHandleVerifier [0x7ff74ed08ffe+335fe]
+E       	chromedriver!GetHandleVerifier [0x7ff74ed1147c+3ba7c]
+E       	chromedriver!GetHandleVerifier [0x7ff74ecf4d64+1f364]
+E       	chromedriver!GetHandleVerifier [0x7ff74ecf4ef4+1f4f4]
+E       	chromedriver!GetHandleVerifier [0x7ff74ecd7d97+2397]
+E       	KERNEL32!BaseThreadInitThunk [0x7ffcc3a2e8d7+17]
+E       	ntdll!RtlUserThreadStart [0x7ffcc472c53c+2c]
+
+C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\site-packages\selenium\webdriver\support\wait.py:121: TimeoutException

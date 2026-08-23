@@ -1,0 +1,5 @@
+
+>>> Environment : TEST
+>>> Base URL    : https://hotel-example-site.takeyaqa.dev/en-US/
+
+Step 1: Clicked on Login link
