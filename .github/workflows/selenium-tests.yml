@@ -73,7 +73,7 @@ jobs:
             --upgrade pip `
             --disable-pip-version-check
 
-      # 05 - Install Python requirements
+     # 05 - Install Python requirements
       - name: "05 - Install Python requirements"
         shell: powershell
         run: |
@@ -88,8 +88,9 @@ jobs:
             exit 1
           }
 
-          Write-Host "Applying dynamic fix for certifi dependency conflict..."
+          Write-Host "Applying dynamic fixes for dependency conflicts..."
           (Get-Content requirements.txt) -replace 'certifi==2025\.8\.3', 'certifi>=2026.1.4' | Set-Content requirements.txt
+          (Get-Content requirements.txt) -replace 'urllib3==2\.5\.0', 'urllib3>=2.6.3' | Set-Content requirements.txt
 
           Write-Host "Installing requirements.txt..."
           Write-Host ""
