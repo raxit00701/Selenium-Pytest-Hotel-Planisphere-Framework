@@ -133,11 +133,11 @@ jobs:
         run: |
           Write-Host ""
           Write-Host "============================================================"
-          Write-Host " INSTALLING ALLURE CLI"
+          Write-Host " INSTALLING ALLURE CLI (via NPM)"
           Write-Host "============================================================"
           Write-Host ""
 
-          choco install allure -y --no-progress
+          npm install -g allure-commandline
 
           if ($LASTEXITCODE -ne 0) {
             Write-Host "ERROR: Allure installation failed."
