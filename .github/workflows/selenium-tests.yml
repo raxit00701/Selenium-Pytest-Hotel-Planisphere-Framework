@@ -1,4 +1,3 @@
-
 name: Selenium Pytest Tests
 
 on:
@@ -14,108 +13,23 @@ on:
 
 jobs:
   selenium-tests:
-    name: Chrome Headed Selenium Tests
+    name: Chrome Headless Selenium Tests
     runs-on: windows-latest
 
     steps:
-
-      # ============================================================
-      # 01 - CHECKOUT
-      # ============================================================
+      # 01 - Checkout
       - name: "01 - Checkout repository"
         uses: actions/checkout@v4
 
-      # ============================================================
-      # 02 - PYTHON
-      # ============================================================
+      # 02 - Python
       - name: "02 - Setup Python"
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
-      # ============================================================
-      # 03 - INSTALL GOOGLE CHROME
-      # ============================================================
-      - name: "03 - Install Google Chrome"
-        shell: powershell
-        run: |
-          Write-Host ""
-          Write-Host "============================================================"
-          Write-Host " INSTALLING GOOGLE CHROME"
-          Write-Host "============================================================"
-          Write-Host ""
-
-          choco install googlechrome -y --no-progress
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "ERROR: Google Chrome installation failed."
-            exit $LASTEXITCODE
-          }
-
-          Write-Host ""
-          Write-Host "Chrome installation completed."
-
-      # ============================================================
-      # 04 - FIND CHROME
-      # ============================================================
-      - name: "04 - Verify Chrome"
-        shell: powershell
-        run: |
-          Write-Host ""
-          Write-Host "============================================================"
-          Write-Host " VERIFYING GOOGLE CHROME"
-          Write-Host "============================================================"
-          Write-Host ""
-
-          $chromePaths = @(
-            "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe",
-            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
-            "${env:LOCALAPPDATA}\Google\Chrome\Application\chrome.exe"
-          )
-
-          $chromeFound = $false
-
-          foreach ($path in $chromePaths) {
-            if (Test-Path $path) {
-
-              Write-Host "Chrome found:"
-              Write-Host "  $path"
-
-              $version = (Get-Item $path).VersionInfo.ProductVersion
-
-              Write-Host ""
-              Write-Host "Chrome version:"
-              Write-Host "  $version"
-
-              # Add Chrome directory to PATH for this job
-              $chromeDir = Split-Path $path
-              $env:PATH = "$chromeDir;$env:PATH"
-
-              # Persist PATH for subsequent GitHub Actions steps
-              "$chromeDir" | Out-File `
-                -FilePath $env:GITHUB_PATH `
-                -Encoding utf8 `
-                -Append
-
-              $chromeFound = $true
-              break
-            }
-          }
-
-          if (-not $chromeFound) {
-            Write-Host ""
-            Write-Host "ERROR: Chrome executable was not found."
-            exit 1
-          }
-
-          Write-Host ""
-          Write-Host "Chrome is ready for Selenium."
-
-      # ============================================================
-      # 05 - ENVIRONMENT INFORMATION
-      # ============================================================
-      - name: "05 - Verify CI environment"
+      # 03 - Environment info
+      - name: "03 - Verify CI environment"
         shell: powershell
         run: |
           Write-Host ""
@@ -136,16 +50,14 @@ jobs:
           python -m pip --version
 
           Write-Host "Chrome:"
-          chrome.exe --version
+          & "C:\Program Files\Google\Chrome\Application\chrome.exe" --version
 
           Write-Host ""
           Write-Host "Working directory:"
           Get-Location
 
-      # ============================================================
-      # 06 - UPGRADE PIP
-      # ============================================================
-      - name: "06 - Upgrade pip"
+      # 04 - Upgrade pip
+      - name: "04 - Upgrade pip"
         shell: powershell
         run: |
           Write-Host ""
@@ -158,10 +70,8 @@ jobs:
             --upgrade pip `
             --disable-pip-version-check
 
-      # ============================================================
-      # 07 - INSTALL PYTHON REQUIREMENTS
-      # ============================================================
-      - name: "07 - Install Python requirements"
+      # 05 - Install Python requirements
+      - name: "05 - Install Python requirements"
         shell: powershell
         run: |
           Write-Host ""
@@ -192,10 +102,8 @@ jobs:
           Write-Host ""
           Write-Host "Python dependencies installed successfully."
 
-      # ============================================================
-      # 08 - VERIFY TEST STACK
-      # ============================================================
-      - name: "08 - Verify test stack"
+      # 06 - Verify test stack
+      - name: "06 - Verify test stack"
         shell: powershell
         run: |
           Write-Host ""
@@ -205,17 +113,15 @@ jobs:
           Write-Host ""
 
           python -c "import pytest; print('pytest        :', pytest.__version__)"
-          python -c "import selenium; print('selenium       :', selenium.__version__)"
+          python -c "import selenium; print('selenium     :', selenium.__version__)"
           python -c "import allure; print('allure-pytest  : installed')"
           python -c "import yaml; print('PyYAML         :', yaml.__version__)"
 
           Write-Host ""
           Write-Host "Python test stack verified."
 
-      # ============================================================
-      # 09 - INSTALL ALLURE
-      # ============================================================
-      - name: "09 - Install Allure CLI"
+      # 07 - Install Allure CLI
+      - name: "07 - Install Allure CLI"
         shell: powershell
         run: |
           Write-Host ""
@@ -235,10 +141,8 @@ jobs:
           Write-Host "Allure version:"
           allure --version
 
-      # ============================================================
-      # 10 - PREPARE DIRECTORIES
-      # ============================================================
-      - name: "10 - Prepare test directories"
+      # 08 - Prepare directories
+      - name: "08 - Prepare test directories"
         shell: powershell
         run: |
           Write-Host ""
@@ -266,10 +170,8 @@ jobs:
           Write-Host "reports/allure-report  : READY"
           Write-Host "artifacts              : READY"
 
-      # ============================================================
-      # 11 - RUN SELENIUM TESTS - HEADED
-      # ============================================================
-      - name: "11 - Run Chrome headed tests"
+      # 09 - Run Selenium tests (headless in CI)
+      - name: "09 - Run Chrome headless tests"
         shell: powershell
         env:
           CI: "true"
@@ -283,7 +185,7 @@ jobs:
           Write-Host ""
           Write-Host "Framework     : Selenium + Pytest"
           Write-Host "Browser       : Google Chrome"
-          Write-Host "Mode          : HEADED"
+          Write-Host "Mode          : HEADLESS (CI)"
           Write-Host "Environment   : TEST"
           Write-Host "Test path     : src/tests"
           Write-Host "Allure output : reports/allure-results"
@@ -298,6 +200,7 @@ jobs:
           python -m pytest src/tests `
             --browser=chrome `
             --env=test `
+            --headless `
             --alluredir=reports/allure-results `
             --clean-alluredir `
             -ra
@@ -320,10 +223,8 @@ jobs:
 
           exit $testExitCode
 
-      # ============================================================
-      # 12 - GENERATE ALLURE REPORT
-      # ============================================================
-      - name: "12 - Generate Allure HTML report"
+      # 10 - Generate Allure HTML report
+      - name: "10 - Generate Allure HTML report"
         if: always()
         shell: powershell
         run: |
@@ -368,10 +269,8 @@ jobs:
           Write-Host "Allure report generated successfully."
           Write-Host "Location: reports/allure-report/index.html"
 
-      # ============================================================
-      # 13 - INSPECT GENERATED FILES
-      # ============================================================
-      - name: "13 - Inspect generated files"
+      # 11 - Inspect generated files
+      - name: "11 - Inspect generated files"
         if: always()
         shell: powershell
         run: |
@@ -414,10 +313,8 @@ jobs:
             Write-Host "  Directory not found"
           }
 
-      # ============================================================
-      # 14 - UPLOAD ALLURE REPORT
-      # ============================================================
-      - name: "14 - Upload Allure HTML report"
+      # 12 - Upload Allure report
+      - name: "12 - Upload Allure HTML report"
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -426,10 +323,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      # ============================================================
-      # 15 - UPLOAD ALLURE RESULTS
-      # ============================================================
-      - name: "15 - Upload Allure results"
+      # 13 - Upload Allure results
+      - name: "13 - Upload Allure results"
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -438,10 +333,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      # ============================================================
-      # 16 - UPLOAD TEST ARTIFACTS
-      # ============================================================
-      - name: "16 - Upload test artifacts"
+      # 14 - Upload test artifacts
+      - name: "14 - Upload test artifacts"
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -450,10 +343,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      # ============================================================
-      # 17 - FINAL SUMMARY
-      # ============================================================
-      - name: "17 - CI summary"
+      # 15 - Final summary
+      - name: "15 - CI summary"
         if: always()
         shell: powershell
         run: |
@@ -464,7 +355,7 @@ jobs:
           Write-Host ""
           Write-Host "Framework   : Selenium + Pytest"
           Write-Host "Browser     : Google Chrome"
-          Write-Host "Mode        : HEADED"
+          Write-Host "Mode        : HEADLESS (CI)"
           Write-Host "Environment : TEST"
           Write-Host ""
           Write-Host "Artifacts:"
@@ -476,4 +367,3 @@ jobs:
           Write-Host "  reports/allure-report/index.html"
           Write-Host ""
           Write-Host "============================================================"
-```
